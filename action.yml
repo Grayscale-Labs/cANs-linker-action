@@ -1,5 +1,5 @@
-name: "cANs Linker"
-description: "Greet someone and record the time"
+name: "cANs Linker Action"
+description: "Link pull requests to Notion ticket based on branch name"
 inputs:
   notion-token:
     description: API token for the Notion integration
