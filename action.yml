@@ -1,0 +1,22 @@
+name: "cANs Linker"
+description: "Greet someone and record the time"
+inputs:
+  notion-token:
+    description: API token for the Notion integration
+    required: true
+  stories-db-id:
+    description: ID of the stories database
+    required: true
+  github-token:
+    description: API token for GitHub
+    required: true
+outputs:
+  ticket-id:
+    description: "ID of the Notion ticket"
+  ticket-name:
+    description: "Name of the Notion ticket"
+  ticket-url:
+    description: "URL to the Notion ticket"
+runs:
+  using: "node16"
+  main: "dist/index.js"
