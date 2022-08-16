@@ -9939,7 +9939,7 @@ function opened() {
         // Return if branch does not match
         const matches = branchName.match(BRANCH_PATTERN);
         if (matches === null) {
-            (0, core_1.setFailed)("Branch name does not match pattern username/1234-ticket-name");
+            (0, core_1.debug)("Branch name does not match pattern {username}/{ticket_num}-{ticket_name}");
             return;
         }
         // Query for ticket page object
