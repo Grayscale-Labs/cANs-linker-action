@@ -34,7 +34,9 @@ async function opened() {
   // Return if branch does not match
   const matches = branchName.match(BRANCH_PATTERN);
   if (matches === null) {
-    setFailed("Branch name does not match pattern username/1234-ticket-name");
+    debug(
+      "Branch name does not match pattern {username}/{ticket_num}-{ticket_name}"
+    );
     return;
   }
 
