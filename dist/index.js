@@ -9994,7 +9994,7 @@ function commentOnNotionTicket(ticketPageId, pullRequest) {
                     text: {
                         content: `PR#${pullRequest.number}`,
                         link: {
-                            url: pullRequest.url,
+                            url: pullRequest.html_url,
                         },
                     },
                 },
