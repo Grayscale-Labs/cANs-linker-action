@@ -63,9 +63,13 @@ async function opened() {
       return;
     }
 
+    debug(`Found ticket with ID ${ticketNum}`);
     ticket = fetchedTicket;
   } else {
-    ticket = await createTicket(formatTicketBranchName(ticketName));
+    const formattedName = formatTicketBranchName(ticketName);
+
+    debug(`Creating ticket with name ${formattedName}`);
+    ticket = await createTicket(formattedName);
   }
 
   // Set outputs
