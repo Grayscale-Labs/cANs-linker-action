@@ -51,12 +51,13 @@ async function opened() {
 
   // Query for ticket page object
   const [_, username, ticketNumStr, ticketName] = matches;
-  const ticketNum = parseInt(ticketNumStr);
 
   // Get/create ticket
   // Fails if it can't find the specified ticket
   let ticket: TicketPage;
-  if (ticketNumStr === "") {
+  if (ticketNumStr !== "") {
+    const ticketNum = parseInt(ticketNumStr);
+
     const fetchedTicket = await getTicket(ticketNum);
     if (fetchedTicket === null) {
       setFailed(`No ticket found with ID ${ticketNumStr}`);
