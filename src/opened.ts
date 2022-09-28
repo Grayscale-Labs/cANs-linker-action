@@ -84,7 +84,9 @@ async function opened() {
   debug("Commenting Notion ticket on PR");
   await commentOnPullRequest(
     payload,
-    `Linked to [NT-${ticketNumStr}](${ticket.url})`
+    ticketNumStr === ""
+      ? `Linked to [new ticket](${ticket.url})`
+      : `Linked to [NT-${ticketNumStr}](${ticket.url})`
   );
 }
 
