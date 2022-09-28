@@ -1,14 +1,12 @@
 import { getInput, debug, setOutput, setFailed } from "@actions/core";
 import { context, getOctokit } from "@actions/github";
 import { Client } from "@notionhq/client";
-import {
-  CreateCommentResponse,
-  PageObjectResponse,
-} from "@notionhq/client/build/src/api-endpoints";
+import { CreateCommentResponse } from "@notionhq/client/build/src/api-endpoints";
 import { PullRequest, PullRequestEvent } from "@octokit/webhooks-types";
 
 // Matches (username)/(1234)-(ticket-name)
-const BRANCH_PATTERN = /([a-z]*)\/(\d*)-([a-z\-]*)/;
+// Ticket number match is optional
+const BRANCH_PATTERN = /([a-z]*)\/(\d*)-?([a-z\d\-]*)/;
 
 const GITHUB_TOKEN = getInput("github-token", {
   required: true,
@@ -27,6 +25,17 @@ const notion = new Client({
   auth: NOTION_TOKEN,
 });
 
+interface TicketPage {
+  id: string;
+  url: string;
+  properties: Record<
+    string,
+    {
+      id: string;
+    }
+  >;
+}
+
 async function opened() {
   const payload = context.payload as PullRequestEvent;
   const branchName = payload.pull_request.head.ref;
@@ -42,21 +51,33 @@ async function opened() {
 
   // Query for ticket page object
   const [_, username, ticketNumStr, ticketName] = matches;
-  const ticket = await getTicket(parseInt(ticketNumStr));
 
-  if (ticket === null) {
-    setFailed(`No ticket found with ID ${ticketNumStr}`);
-    return;
+  // Get/create ticket
+  // Fails if it can't find the specified ticket
+  let ticket: TicketPage;
+  if (ticketNumStr !== "") {
+    const ticketNum = parseInt(ticketNumStr);
+
+    const fetchedTicket = await getTicket(ticketNum);
+    if (fetchedTicket === null) {
+      setFailed(`No ticket found with ID ${ticketNumStr}`);
+      return;
+    }
+
+    debug(`Found ticket with ID ${ticketNum}`);
+    ticket = fetchedTicket;
+  } else {
+    const formattedName = formatTicketBranchName(ticketName);
+
+    debug(`Creating ticket with name ${formattedName}`);
+    ticket = await createTicket(formattedName);
   }
-
-  debug(`Found ticket for ID ${ticketNumStr} at ${ticket.url}`);
 
   // Set outputs
   setOutput("ticket-id", ticketNumStr);
   setOutput("ticket-name", ticket.properties["title"] || "unknown");
   setOutput("ticket-url", ticket.url);
 
-  // Comment PR link
   debug("Commenting PR on Notion ticket");
   await commentOnNotionTicket(ticket.id, payload.pull_request);
 
@@ -67,9 +88,7 @@ async function opened() {
   );
 }
 
-async function getTicket(
-  ticketNum: number
-): Promise<PageObjectResponse | null> {
+async function getTicket(ticketNum: number): Promise<TicketPage | null> {
   const response = await notion.databases.query({
     database_id: STORIES_DB_ID,
     filter: {
@@ -81,8 +100,25 @@ async function getTicket(
     page_size: 1,
   });
 
-  if (response.results.length === 0) return null;
-  return response.results[0] as PageObjectResponse;
+  if (response.results.length === 0) {
+    return null;
+  }
+
+  return response.results[0] as TicketPage;
+}
+
+async function createTicket(ticketName: string): Promise<TicketPage> {
+  const response = await notion.pages.create({
+    parent: { database_id: STORIES_DB_ID },
+    properties: {
+      Story: {
+        type: "title",
+        title: [{ type: "text", text: { content: ticketName } }],
+      },
+    },
+  });
+
+  return response as TicketPage;
 }
 
 async function commentOnNotionTicket(
@@ -132,6 +168,12 @@ async function commentOnPullRequest(
     return false;
   }
   return true;
+}
+
+function formatTicketBranchName(branchName: string): string {
+  const spaced = branchName.replace("-", " ");
+
+  return spaced[0].toUpperCase() + spaced.slice(1);
 }
 
 export default opened;
