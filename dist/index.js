@@ -9918,7 +9918,8 @@ const core_1 = __nccwpck_require__(2186);
 const github_1 = __nccwpck_require__(5438);
 const client_1 = __nccwpck_require__(324);
 // Matches (username)/(1234)-(ticket-name)
-const BRANCH_PATTERN = /([a-z]*)\/(\d*)-([a-z\-]*)/;
+// Ticket number match is optional
+const BRANCH_PATTERN = /([a-z]*)\/(\d*)-?([a-z\d\-]*)/;
 const GITHUB_TOKEN = (0, core_1.getInput)("github-token", {
     required: true,
 });
@@ -9944,17 +9945,28 @@ function opened() {
         }
         // Query for ticket page object
         const [_, username, ticketNumStr, ticketName] = matches;
-        const ticket = yield getTicket(parseInt(ticketNumStr));
-        if (ticket === null) {
-            (0, core_1.setFailed)(`No ticket found with ID ${ticketNumStr}`);
-            return;
+        // Get/create ticket
+        // Fails if it can't find the specified ticket
+        let ticket;
+        if (ticketNumStr !== "") {
+            const ticketNum = parseInt(ticketNumStr);
+            const fetchedTicket = yield getTicket(ticketNum);
+            if (fetchedTicket === null) {
+                (0, core_1.setFailed)(`No ticket found with ID ${ticketNumStr}`);
+                return;
+            }
+            (0, core_1.debug)(`Found ticket with ID ${ticketNum}`);
+            ticket = fetchedTicket;
         }
-        (0, core_1.debug)(`Found ticket for ID ${ticketNumStr} at ${ticket.url}`);
+        else {
+            const formattedName = formatTicketBranchName(ticketName);
+            (0, core_1.debug)(`Creating ticket with name ${formattedName}`);
+            ticket = yield createTicket(formattedName);
+        }
         // Set outputs
         (0, core_1.setOutput)("ticket-id", ticketNumStr);
         (0, core_1.setOutput)("ticket-name", ticket.properties["title"] || "unknown");
         (0, core_1.setOutput)("ticket-url", ticket.url);
-        // Comment PR link
         (0, core_1.debug)("Commenting PR on Notion ticket");
         yield commentOnNotionTicket(ticket.id, payload.pull_request);
         (0, core_1.debug)("Commenting Notion ticket on PR");
@@ -9973,9 +9985,24 @@ function getTicket(ticketNum) {
             },
             page_size: 1,
         });
-        if (response.results.length === 0)
+        if (response.results.length === 0) {
             return null;
+        }
         return response.results[0];
+    });
+}
+function createTicket(ticketName) {
+    return __awaiter(this, void 0, void 0, function* () {
+        const response = yield notion.pages.create({
+            parent: { database_id: STORIES_DB_ID },
+            properties: {
+                Story: {
+                    type: "title",
+                    title: [{ type: "text", text: { content: ticketName } }],
+                },
+            },
+        });
+        return response;
     });
 }
 function commentOnNotionTicket(ticketPageId, pullRequest) {
@@ -10018,6 +10045,10 @@ function commentOnPullRequest(payload, comment) {
         }
         return true;
     });
+}
+function formatTicketBranchName(branchName) {
+    const spaced = branchName.replace("-", " ");
+    return spaced[0].toUpperCase() + spaced.slice(1);
 }
 exports["default"] = opened;
 
