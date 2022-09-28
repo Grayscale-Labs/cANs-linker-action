@@ -9970,7 +9970,9 @@ function opened() {
         (0, core_1.debug)("Commenting PR on Notion ticket");
         yield commentOnNotionTicket(ticket.id, payload.pull_request);
         (0, core_1.debug)("Commenting Notion ticket on PR");
-        yield commentOnPullRequest(payload, `Linked to [NT-${ticketNumStr}](${ticket.url})`);
+        yield commentOnPullRequest(payload, ticketNumStr === ""
+            ? `Linked to [new ticket](${ticket.url})`
+            : `Linked to [NT-${ticketNumStr}](${ticket.url})`);
     });
 }
 function getTicket(ticketNum) {
