@@ -1,4 +1,4 @@
-import { getInput, debug, setOutput, setFailed } from "@actions/core";
+import { getInput, debug, setOutput } from "@actions/core";
 import { context, getOctokit } from "@actions/github";
 import { Client } from "@notionhq/client";
 import { CreateCommentResponse } from "@notionhq/client/build/src/api-endpoints";
@@ -8,17 +8,9 @@ import { PullRequest, PullRequestEvent } from "@octokit/webhooks-types";
 // Ticket number match is optional
 const BRANCH_PATTERN = /([a-z]*)\/(\d*)-?([a-z\d\-]*)/;
 
-const GITHUB_TOKEN = getInput("github-token", {
-  required: true,
-});
-
-const NOTION_TOKEN = getInput("notion-token", {
-  required: true,
-});
-
-const STORIES_DB_ID = getInput("stories-db-id", {
-  required: true,
-});
+const GITHUB_TOKEN = getInput("github-token");
+const NOTION_TOKEN = getInput("notion-token");
+const STORIES_DB_ID = getInput("stories-db-id");
 
 // Init notion client
 const notion = new Client({
@@ -37,6 +29,13 @@ interface TicketPage {
 }
 
 async function opened() {
+  if (GITHUB_TOKEN && NOTION_TOKEN && STORIES_DB_ID) {
+    debug(
+      "Exiting because some required inputs (GITHUB_TOKEN, NOTION_TOKEN, STORIES_DB_ID) are empty"
+    );
+    return;
+  }
+
   const payload = context.payload as PullRequestEvent;
   const branchName = payload.pull_request.head.ref;
 
@@ -60,7 +59,7 @@ async function opened() {
 
     const fetchedTicket = await getTicket(ticketNum);
     if (fetchedTicket === null) {
-      setFailed(`No ticket found with ID ${ticketNumStr}`);
+      debug(`No ticket found with ID ${ticketNumStr}`);
       return;
     }
 
@@ -167,7 +166,7 @@ async function commentOnPullRequest(
   };
   const commentResponse = await octokit.rest.issues.createComment(params);
   if (commentResponse.status !== 201) {
-    setFailed(
+    debug(
       `HTTP ${
         commentResponse.status
       } octokit.issues.createComment(${JSON.stringify(params)})`
