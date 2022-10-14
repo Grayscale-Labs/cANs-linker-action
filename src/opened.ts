@@ -67,10 +67,8 @@ async function opened() {
     debug(`Found ticket with ID ${ticketNum}`);
     ticket = fetchedTicket;
   } else {
-    const formattedName = formatTicketBranchName(ticketName);
-
-    debug(`Creating ticket with name ${formattedName}`);
-    ticket = await createTicket(formattedName);
+    debug(`Creating ticket with name ${payload.pull_request.title}`);
+    ticket = await createTicket(payload.pull_request.title);
   }
 
   // Set outputs
@@ -114,8 +112,15 @@ async function createTicket(ticketName: string): Promise<TicketPage> {
     parent: { database_id: STORIES_DB_ID },
     properties: {
       Story: {
+        // @ts-ignore: Notion types do not include "status"
         type: "title",
         title: [{ type: "text", text: { content: ticketName } }],
+      },
+      Status: {
+        // @ts-ignore: Notion types do not include "status"
+        status: {
+          name: "Review",
+        },
       },
     },
   });
@@ -170,12 +175,6 @@ async function commentOnPullRequest(
     return false;
   }
   return true;
-}
-
-function formatTicketBranchName(branchName: string): string {
-  const spaced = branchName.replace("-", " ");
-
-  return spaced[0].toUpperCase() + spaced.slice(1);
 }
 
 export default opened;

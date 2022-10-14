@@ -9959,9 +9959,8 @@ function opened() {
             ticket = fetchedTicket;
         }
         else {
-            const formattedName = formatTicketBranchName(ticketName);
-            (0, core_1.debug)(`Creating ticket with name ${formattedName}`);
-            ticket = yield createTicket(formattedName);
+            (0, core_1.debug)(`Creating ticket with name ${payload.pull_request.title}`);
+            ticket = yield createTicket(payload.pull_request.title);
         }
         // Set outputs
         (0, core_1.setOutput)("ticket-id", ticketNumStr);
@@ -9999,8 +9998,15 @@ function createTicket(ticketName) {
             parent: { database_id: STORIES_DB_ID },
             properties: {
                 Story: {
+                    // @ts-ignore: Notion types do not include "status"
                     type: "title",
                     title: [{ type: "text", text: { content: ticketName } }],
+                },
+                Status: {
+                    // @ts-ignore: Notion types do not include "status"
+                    status: {
+                        name: "Review",
+                    },
                 },
             },
         });
@@ -10047,10 +10053,6 @@ function commentOnPullRequest(payload, comment) {
         }
         return true;
     });
-}
-function formatTicketBranchName(branchName) {
-    const spaced = branchName.replace("-", " ");
-    return spaced[0].toUpperCase() + spaced.slice(1);
 }
 exports["default"] = opened;
 
