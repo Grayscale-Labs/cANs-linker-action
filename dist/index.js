@@ -9880,7 +9880,7 @@ function run() {
     return __awaiter(this, void 0, void 0, function* () {
         (0, core_1.debug)("Running cANs-linker-action");
         if (github_1.context.eventName !== "pull_request") {
-            (0, core_1.setFailed)("This action only works with `pull_request` events");
+            (0, core_1.debug)("This action only works with `pull_request` events");
             return;
         }
         const payload = github_1.context.payload;
@@ -9889,7 +9889,7 @@ function run() {
                 (0, core_1.debug)("Running `opened` task");
                 return (0, opened_1.default)();
             default:
-                (0, core_1.setFailed)("This action only works with the `opened` action for `pull_request` events");
+                (0, core_1.debug)("This action only works with the `opened` action for `pull_request` events");
                 return;
         }
     });
@@ -9920,21 +9920,19 @@ const client_1 = __nccwpck_require__(324);
 // Matches (username)/(1234)-(ticket-name)
 // Ticket number match is optional
 const BRANCH_PATTERN = /([a-z]*)\/(\d*)-?([a-z\d\-]*)/;
-const GITHUB_TOKEN = (0, core_1.getInput)("github-token", {
-    required: true,
-});
-const NOTION_TOKEN = (0, core_1.getInput)("notion-token", {
-    required: true,
-});
-const STORIES_DB_ID = (0, core_1.getInput)("stories-db-id", {
-    required: true,
-});
+const GITHUB_TOKEN = (0, core_1.getInput)("github-token");
+const NOTION_TOKEN = (0, core_1.getInput)("notion-token");
+const STORIES_DB_ID = (0, core_1.getInput)("stories-db-id");
 // Init notion client
 const notion = new client_1.Client({
     auth: NOTION_TOKEN,
 });
 function opened() {
     return __awaiter(this, void 0, void 0, function* () {
+        if (GITHUB_TOKEN && NOTION_TOKEN && STORIES_DB_ID) {
+            (0, core_1.debug)("Exiting because some required inputs (GITHUB_TOKEN, NOTION_TOKEN, STORIES_DB_ID) are empty");
+            return;
+        }
         const payload = github_1.context.payload;
         const branchName = payload.pull_request.head.ref;
         // Return if branch does not match
@@ -9952,7 +9950,7 @@ function opened() {
             const ticketNum = parseInt(ticketNumStr);
             const fetchedTicket = yield getTicket(ticketNum);
             if (fetchedTicket === null) {
-                (0, core_1.setFailed)(`No ticket found with ID ${ticketNumStr}`);
+                (0, core_1.debug)(`No ticket found with ID ${ticketNumStr}`);
                 return;
             }
             (0, core_1.debug)(`Found ticket with ID ${ticketNum}`);
@@ -10048,7 +10046,7 @@ function commentOnPullRequest(payload, comment) {
         };
         const commentResponse = yield octokit.rest.issues.createComment(params);
         if (commentResponse.status !== 201) {
-            (0, core_1.setFailed)(`HTTP ${commentResponse.status} octokit.issues.createComment(${JSON.stringify(params)})`);
+            (0, core_1.debug)(`HTTP ${commentResponse.status} octokit.issues.createComment(${JSON.stringify(params)})`);
             return false;
         }
         return true;
